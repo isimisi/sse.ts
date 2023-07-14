@@ -1,5 +1,7 @@
 import { headerCase } from 'header-case';
 
+type defaultEvents = 'error' | 'message' | 'open';
+
 export type SSEHeaders = Record<string, string | number | boolean>;
 
 export interface Config {
@@ -325,7 +327,10 @@ export class Source {
     *
     * Generally we use this instead of addEventListener, since we only ever want one action on an event
     */
-   public on(event: string, listener: (data: SourceEvent['data']) => any) {
+   public on<T extends string>(
+      event: T | defaultEvents,
+      listener: (data: SourceEvent['data']) => any
+   ) {
       function _listener(this: Source, e: SourceEvent) {
          this.formatDataOnEvent(e);
          listener(e.data);
@@ -340,7 +345,7 @@ export class Source {
     *
     * Use this in combination with the "on" method, and not with addEventListener
     */
-   public off(event: string) {
+   public off<T extends string>(event: T | defaultEvents) {
       delete this.listeners[event];
    }
 
