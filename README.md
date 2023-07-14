@@ -1,6 +1,10 @@
 # sse.ts
 > this project was heavily inspired by sse.js
 
+- [sse.ts](#ssets)
+  - [usage in react](#usage-in-react)
+  - [API reference](#api-reference)
+
 
 ## usage in react
 ```ts
@@ -36,3 +40,18 @@ export default function MyComponent() {
 };
 
 ```
+
+## API reference
+
+| Type   | Method      | returns |                    |                                    |        |
+|--------|-------------|---------|--------------------|------------------------------------|--------|
+| static | Source.get  | Source  | url: string \| URL | config                             |        |
+| static | Source.post | Source  | url: string \| URL | body: object                       | config |
+| public | source.on   | void    | event: string      | listener: (e: SourceEvent) => void |        |
+| public | source.off  | void    | event: string      |                                    |        |
+| public | source.close  | void    |      |                                    |        |
+
+| Type        | Interface                                                                                                           |
+|-------------|---------------------------------------------------------------------------------------------------------------------|
+| Config      | { <br>  headers?: Record<string, string \| number \| boolean>, <br>  withCredentials: boolean <br>}                 |
+| SourceEvent | extends CustomEvent <br>{ <br>  data: any, <br>  id?: string, <br>  source?: Source, <br>  readyState?: number<br>} |
