@@ -43,7 +43,7 @@ export default function MyComponent() {
 
 ## API reference
 
-| Type   | Method      | returns |                    |                                    |        |
+| Type   | Method      | returns |            args        |                                    |        |
 |--------|-------------|---------|--------------------|------------------------------------|--------|
 | static | Source.get  | Source  | url: string \| URL | config                             |        |
 | static | Source.post | Source  | url: string \| URL | body: object                       | config |
