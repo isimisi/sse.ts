@@ -53,5 +53,5 @@ export default function MyComponent() {
 
 | Type        | Interface                                                                                                           |
 |-------------|---------------------------------------------------------------------------------------------------------------------|
-| Config      | { <br>  headers?: Record<string, string \| number \| boolean>, <br>  withCredentials: boolean <br>}                 |
+| Config      | { <br>  headers?: Record<string, string \| number \| boolean>, <br>  withCredentials?: boolean <br>}                 |
 | SourceEvent | extends CustomEvent <br>{ <br>  data: any, <br>  id?: string, <br>  source?: Source, <br>  readyState?: number<br>} |
