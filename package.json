@@ -35,6 +35,9 @@
       "mrm": "^4.1.17",
       "typescript": "^5.1.6"
    },
+   "peerDependencies": {
+      "header-case": "^2.0.4"
+   },
    "mrmConfig": {
       "core": false,
       "license": "MIT",

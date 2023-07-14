@@ -1,6 +1,11 @@
-// interface VoidFnWithArgs {
-//    (...args: any): void;
-// }
+import { headerCase } from 'header-case';
+
+export type SSEHeaders = Record<string, string | number | boolean>;
+
+export interface Config {
+   headers?: SSEHeaders;
+   withCredentials?: boolean;
+}
 
 class SSESourceException {
    public error: Error;
@@ -9,13 +14,12 @@ class SSESourceException {
    }
 }
 
-type SourceHeaders = Record<string, string>;
 type SourceBody = Record<string, any>;
 
 interface SourceEvent extends CustomEvent {
    source?: Source;
    readyState?: number;
-   data?: Record<string, any> | string | number | Array<any> | null;
+   data: Record<string, any> | string | number | Array<any> | null;
    id?: string | null;
 }
 interface ListenerCallback {
@@ -32,6 +36,10 @@ export class Source {
    private progress = 0;
    private chunk = '';
    private FIELD_SEPARATOR = ':';
+   private reader: ReadableStreamDefaultReader<string> | null = null;
+   public onmessage: ListenerCallback = () => {};
+   public onerror: ListenerCallback = () => {};
+   public onopen: ListenerCallback = () => {};
 
    get readyState() {
       return this._readyState;
@@ -55,15 +63,25 @@ export class Source {
 
    constructor(
       private url: URL | string,
-      private headers: SourceHeaders = {},
+      private config: Config = {},
       private method: 'GET' | 'POST' = 'GET',
-      private body: SourceBody = {},
-    //   private withCredentials = false
+      private body: SourceBody = {}
    ) {
       this.init();
    }
 
-//    private transformHeaders() {}
+   private transformHeaders(obj?: SSEHeaders) {
+      const transformedHeaders: SSEHeaders = {};
+
+      for (const key in obj) {
+         if (Object.hasOwnProperty.call(obj, key)) {
+            const transformedKey = headerCase(key);
+            transformedHeaders[transformedKey] = obj[key];
+         }
+      }
+
+      return transformedHeaders;
+   }
 
    public addEventListener(type: string, listener: ListenerCallback) {
       if (this.listeners[type] === undefined) {
@@ -102,10 +120,14 @@ export class Source {
 
       const onHandler = 'on' + event.type;
 
+      /**
+       * Checks if one might've added functions directly on the instance
+       *
+       * @example source.onmessage = function (event: SourceEvent) {}
+       * However I don't know how to implement this in typescript
+       */
       if (this.hasOwnProperty.call(this, onHandler)) {
-         const handler = this[
-            onHandler as keyof Source
-         ] as unknown as ListenerCallback;
+         const handler = this[onHandler as keyof Source] as ListenerCallback;
 
          if (typeof handler === 'function') {
             handler.call(this, event);
@@ -142,8 +164,9 @@ export class Source {
                   this.method === 'GET'
                      ? 'text/event-stream'
                      : 'application/json',
-               ...this.headers,
+               ...this.transformHeaders(this.config.headers),
             },
+            ...(this.config.withCredentials && { credentials: 'include' }),
             ...(this.method === 'POST' && { body: JSON.stringify(this.body) }),
          });
 
@@ -153,13 +176,13 @@ export class Source {
             );
          }
 
-         const reader = response.body
-            ?.pipeThrough(new TextDecoderStream())
-            .getReader();
+         this.reader =
+            response.body?.pipeThrough(new TextDecoderStream()).getReader() ||
+            null;
 
-         if (reader) {
-            while (this.readyState !== 2) {
-               const { value, done } = await reader.read();
+         if (this.reader) {
+            while (this.readyState !== this.CLOSED) {
+               const { value, done } = await this.reader.read();
 
                if (done) {
                   this.checkStreamClosed(done);
@@ -179,14 +202,14 @@ export class Source {
    }
 
    private setReadyState(state: number) {
-      const event: SourceEvent = new CustomEvent('readystatechange');
+      const event = new CustomEvent('readystatechange') as SourceEvent;
       event.readyState = state;
       this._readyState = state;
       this.dispatchEvent(event);
    }
 
    private onStreamFailure(error: any) {
-      const event: SourceEvent = new CustomEvent('error');
+      const event = new CustomEvent('error') as SourceEvent;
       event.data = error;
       this.dispatchEvent(event);
       this.close();
@@ -194,7 +217,9 @@ export class Source {
 
    private onStreamProgress(value: string) {
       if (this.readyState == this.CONNECTING) {
-         this.dispatchEvent(new CustomEvent('open'));
+         const event = new CustomEvent('open') as SourceEvent;
+         event.data = null;
+         this.dispatchEvent(event);
          this.setReadyState(this.OPEN);
       }
 
@@ -263,7 +288,7 @@ export class Source {
          }.bind(this)
       );
 
-      const event: SourceEvent = new CustomEvent(e.event);
+      const event = new CustomEvent(e.event) as SourceEvent;
       event.data = e.data;
       event.id = e.id;
       return event;
@@ -287,25 +312,43 @@ export class Source {
          return;
       }
 
+      this.reader = null;
+
       this.setReadyState(this.CLOSED);
    }
 
-   public on(type: string, listener: (event: SourceEvent) => any) {
-      this.addEventListener(type, (e) => {
+   /**
+    * Adds the listener function as an event listener for the event.
+    *
+    * @param event the event we want to listen to
+    * @param listener the listener function which will recieve the data sent from the server
+    *
+    * Generally we use this instead of addEventListener, since we only ever want one action on an event
+    */
+   public on(event: string, listener: (data: SourceEvent['data']) => any) {
+      function _listener(this: Source, e: SourceEvent) {
          this.formatDataOnEvent(e);
-         listener(e);
-      });
+         listener(e.data);
+      }
+      this.listeners[event] = [_listener.bind(this)];
    }
 
-   public off(type: string) {
-      delete this.listeners[type];
+   /**
+    * Removes the listener function as an event listener for the event.
+    *
+    * @param event the event where we want to remove the function off
+    *
+    * Use this in combination with the "on" method, and not with addEventListener
+    */
+   public off(event: string) {
+      delete this.listeners[event];
    }
 
-   static post(url: URL | string, body: SourceBody, headers?: SourceHeaders) {
-      return new this(url, headers, 'POST', body);
+   static post(url: URL | string, body: SourceBody, config?: Config) {
+      return new this(url, config, 'POST', body);
    }
 
-   static get(url: URL | string, headers?: SourceHeaders) {
-      return new this(url, headers);
+   static get(url: URL | string, config?: Config) {
+      return new this(url, config);
    }
 }
