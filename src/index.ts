@@ -16,15 +16,15 @@ class SSESourceException {
 
 type SourceBody = Record<string, any>;
 
-interface SourceEvent extends CustomEvent {
+export interface SourceEvent<T = any> extends CustomEvent {
    source?: Source;
    readyState?: number;
-   data: Record<string, any> | string | number | Array<any> | null;
+   data: T;
    id?: string | null;
    sse_id: string;
 }
-interface ListenerCallback {
-   (event: SourceEvent): void;
+export interface ListenerCallback<DataType = any> {
+   (event: SourceEvent<DataType>): void;
 }
 
 export class Source {
@@ -334,7 +334,7 @@ export class Source {
     *
     * Generally we use this instead of addEventListener, since we only ever want one action on an event
     */
-   public on(event: string, listener: (data: SourceEvent) => any) {
+   public on(event: string, listener: (sourceEvent: SourceEvent) => any) {
       function _listener(this: Source, e: SourceEvent) {
          this.formatDataOnEvent(e);
          listener(e);
