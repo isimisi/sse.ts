@@ -1,7 +1,5 @@
 import { headerCase } from 'header-case';
 
-type defaultEvents = 'error' | 'message' | 'open';
-
 export type SSEHeaders = Record<string, string | number | boolean>;
 
 export interface Config {
@@ -23,6 +21,7 @@ interface SourceEvent extends CustomEvent {
    readyState?: number;
    data: Record<string, any> | string | number | Array<any> | null;
    id?: string | null;
+   sse_id: string;
 }
 interface ListenerCallback {
    (event: SourceEvent): void;
@@ -260,11 +259,13 @@ export class Source {
          retry: null | number;
          data: any;
          event: string;
+         sse_id: string;
       } = {
          id: null,
          retry: null,
          data: '',
          event: 'message',
+         sse_id: '',
       };
       chunk.split(/\n|\r\n|\r/).forEach(
          function (this: Source, line: string) {
@@ -282,6 +283,7 @@ export class Source {
             }
 
             const value = line.substring(index + 1).trimLeft();
+
             if (field === 'data') {
                e[field] += value;
             } else {
@@ -293,6 +295,7 @@ export class Source {
       const event = new CustomEvent(e.event) as SourceEvent;
       event.data = e.data;
       event.id = e.id;
+      event.sse_id = e.sse_id;
       return event;
    }
 
@@ -327,13 +330,10 @@ export class Source {
     *
     * Generally we use this instead of addEventListener, since we only ever want one action on an event
     */
-   public on<T extends string>(
-      event: T | defaultEvents,
-      listener: (data: SourceEvent['data']) => any
-   ) {
+   public on(event: string, listener: (data: SourceEvent) => any) {
       function _listener(this: Source, e: SourceEvent) {
          this.formatDataOnEvent(e);
-         listener(e.data);
+         listener(e);
       }
       this.listeners[event] = [_listener.bind(this)];
    }
@@ -345,7 +345,7 @@ export class Source {
     *
     * Use this in combination with the "on" method, and not with addEventListener
     */
-   public off<T extends string>(event: T | defaultEvents) {
+   public off(event: string) {
       delete this.listeners[event];
    }
 
