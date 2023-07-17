@@ -34,13 +34,17 @@ export class Source {
    private _closed = 2;
    private listeners: Record<string, ListenerCallback[]> = {};
    private _readyState = this.INITIALIZING;
-   private progress = 0;
    private chunk = '';
    private FIELD_SEPARATOR = ':';
+   private _id = '';
    private reader: ReadableStreamDefaultReader<string> | null = null;
    public onmessage: ListenerCallback = () => {};
    public onerror: ListenerCallback = () => {};
    public onopen: ListenerCallback = () => {};
+
+   get id() {
+      return this._id;
+   }
 
    get readyState() {
       return this._readyState;
@@ -224,9 +228,7 @@ export class Source {
          this.setReadyState(this.OPEN);
       }
 
-      const data = value.substring(this.progress);
-      this.progress += data.length;
-      data.split(/(\r\n|\r|\n){2}/g).forEach(
+      value.split(/(\r\n|\r|\n){2}/g).forEach(
          function (this: Source, part: string) {
             if (part.trim().length === 0) {
                this.dispatchEvent(this.parseEventChunk(this.chunk.trim()));
@@ -295,7 +297,9 @@ export class Source {
       const event = new CustomEvent(e.event) as SourceEvent;
       event.data = e.data;
       event.id = e.id;
-      event.sse_id = e.sse_id;
+      if (!this.id) {
+         this._id = e.sse_id;
+      }
       return event;
    }
 
