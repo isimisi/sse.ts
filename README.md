@@ -1,5 +1,5 @@
 # sse.ts
-> this project was heavily inspired by sse.js
+> this project was inspired by sse.js
 
 - [sse.ts](#ssets)
   - [usage in react](#usage-in-react)
