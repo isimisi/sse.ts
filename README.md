@@ -5,6 +5,11 @@
   - [usage in react](#usage-in-react)
   - [API reference](#api-reference)
 
+## installation
+```
+yarn add @isimisi/sse.ts
+```
+
 
 ## usage in react
 ```ts
