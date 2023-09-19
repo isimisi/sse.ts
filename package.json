@@ -1,6 +1,6 @@
 {
-   "name": "sse.ts",
-   "version": "1.0.0",
+   "name": "@isimisi/sse.ts",
+   "version": "0.0.1",
    "description": "EventSource rewritten from sse.js and fetch api",
    "main": "build/src/index.js",
    "scripts": {
