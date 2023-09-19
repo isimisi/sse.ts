@@ -1,12 +1,10 @@
 {
    "name": "@isimisi/sse.ts",
-   "version": "0.0.1",
+   "version": "0.0.2",
    "description": "EventSource rewritten from sse.js and fetch api",
    "main": "build/src/index.js",
    "scripts": {
       "pretest": "npm run lint",
-      "test": "node -r @adonisjs/require-ts/build/register bin/test.ts",
-      "mrm": "mrm --preset=@adonisjs/mrm-preset",
       "clean": "del-cli build",
       "compile": "npm run clean && tsc",
       "build": "npm run compile",
@@ -30,7 +28,6 @@
    "devDependencies": {
       "@adonisjs/mrm-preset": "^5.0.3",
       "@adonisjs/require-ts": "^2.0.13",
-      "@types/node": "^20.4.2",
       "del-cli": "^5.0.0",
       "mrm": "^4.1.17",
       "typescript": "^5.1.6"
